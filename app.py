@@ -17,7 +17,7 @@ HTML = """<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Square Converter</title>
+<title>K-Glow Square Converter</title>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 :root{
@@ -152,9 +152,9 @@ button[type=submit]:disabled{opacity:.4;cursor:not-allowed;}
         <div class="dpi-group">
           <select name="dpi">
             <option value="100">100</option>
-            <option value="150" selected>150</option>
+            <option value="150">150</option>
             <option value="200">200</option>
-            <option value="300">300</option>
+            <option value="300" selected>300</option>
           </select>
         </div>
       </div>
