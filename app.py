@@ -17,7 +17,7 @@ HTML = """<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>K-Glow Square Converter</title>
+<title>Square Converter</title>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 :root{
@@ -118,7 +118,7 @@ button[type=submit]:disabled{opacity:.4;cursor:not-allowed;}
 </head>
 <body>
 <div class="logo">Batch Tool</div>
-<h1>K-Glow Square Converter</h1>
+<h1>Square Converter</h1>
 <p class="subtitle">A4 → 1:1 &nbsp;·&nbsp; PNG / JPEG / PDF &nbsp;·&nbsp; Barcode-safe</p>
 <div class="card">
   <form id="upload-form">
@@ -135,11 +135,19 @@ button[type=submit]:disabled{opacity:.4;cursor:not-allowed;}
         <div class="mode-cards">
           <div class="mode-card">
             <input type="radio" name="mode" id="mode-smart" value="smart" checked>
-            <label for="mode-smart"><strong>Smart <span class="badge badge-new">new</span></strong>Обрезает пустоту</label>
+            <label for="mode-smart"><strong>Smart 1:1</strong>Квадрат, без пустоты</label>
+          </div>
+          <div class="mode-card">
+            <input type="radio" name="mode" id="mode-label" value="label">
+            <label for="mode-label"><strong>102×150 мм</strong>Формат этикетки</label>
+          </div>
+          <div class="mode-card">
+            <input type="radio" name="mode" id="mode-content" value="content">
+            <label for="mode-content"><strong>Только контент</strong>Без паддинга</label>
           </div>
           <div class="mode-card">
             <input type="radio" name="mode" id="mode-pad" value="pad">
-            <label for="mode-pad"><strong>Белые поля</strong>Без потерь</label>
+            <label for="mode-pad"><strong>Белые поля</strong>1:1 без потерь</label>
           </div>
           <div class="mode-card">
             <input type="radio" name="mode" id="mode-crop" value="crop">
@@ -152,9 +160,9 @@ button[type=submit]:disabled{opacity:.4;cursor:not-allowed;}
         <div class="dpi-group">
           <select name="dpi">
             <option value="100">100</option>
-            <option value="150">150</option>
+            <option value="150" selected>150</option>
             <option value="200">200</option>
-            <option value="300" selected>300</option>
+            <option value="300">300</option>
           </select>
         </div>
       </div>
@@ -334,18 +342,48 @@ def center_crop(img):
     img=ensure_rgb(img); w,h=img.size; size=min(w,h)
     return img.crop(((w-size)//2,(h-size)//2,(w+size)//2,(h+size)//2))
 
-def smart_crop(img, padding_pct=0.03, threshold=200):
+def find_content(img, padding_pct=0.03, threshold=200):
+    """Find content bounding box and return cropped image."""
     img=ensure_rgb(img); gray=np.array(img.convert("L")); h,w=gray.shape
     rows=np.any(gray<threshold,axis=1); cols=np.any(gray<threshold,axis=0)
-    if not rows.any() or not cols.any(): return pad_to_square(img)
+    if not rows.any() or not cols.any(): return img
     top=int(np.argmax(rows)); bottom=int(len(rows)-np.argmax(rows[::-1]))
     left=int(np.argmax(cols)); right=int(len(cols)-np.argmax(cols[::-1]))
     pad=int(max(bottom-top,right-left)*padding_pct)
-    return pad_to_square(img.crop((max(0,left-pad),max(0,top-pad),min(w,right+pad),min(h,bottom+pad))))
+    return img.crop((max(0,left-pad),max(0,top-pad),min(w,right+pad),min(h,bottom+pad)))
+
+def smart_crop(img, padding_pct=0.03, threshold=200):
+    """Smart crop + pad to 1:1 square."""
+    return pad_to_square(find_content(img, padding_pct, threshold))
+
+def to_label_size(img, w_mm=102, h_mm=150, padding_pct=0.03, threshold=200):
+    """Smart crop + pad to 102x150mm label ratio."""
+    cropped = find_content(img, padding_pct, threshold)
+    cw, ch = cropped.size
+    # Target ratio: 102:150 = 0.68
+    target_ratio = w_mm / h_mm
+    current_ratio = cw / ch
+    if current_ratio > target_ratio:
+        # Content is wider than label — match width, expand height
+        new_w = cw
+        new_h = int(cw / target_ratio)
+    else:
+        # Content is taller than label — match height, expand width
+        new_h = ch
+        new_w = int(ch * target_ratio)
+    out = Image.new("RGB", (new_w, new_h), (255, 255, 255))
+    out.paste(cropped, ((new_w - cw) // 2, (new_h - ch) // 2))
+    return out
+
+def content_only(img, padding_pct=0.03, threshold=200):
+    """Smart crop only — no padding, original content ratio."""
+    return find_content(img, padding_pct, threshold)
 
 def process(img, mode):
-    if mode=="smart": return smart_crop(img)
-    if mode=="pad":   return pad_to_square(img)
+    if mode=="smart":   return smart_crop(img)
+    if mode=="label":   return to_label_size(img)
+    if mode=="content": return content_only(img)
+    if mode=="pad":     return pad_to_square(img)
     return center_crop(img)
 
 def to_bytes(img, fmt="PNG"):
