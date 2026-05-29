@@ -118,7 +118,7 @@ button[type=submit]:disabled{opacity:.4;cursor:not-allowed;}
 </head>
 <body>
 <div class="logo">Batch Tool</div>
-<h1>Square Converter</h1>
+<h1>K-Glow Square Converter</h1>
 <p class="subtitle">A4 → 1:1 &nbsp;·&nbsp; PNG / JPEG / PDF &nbsp;·&nbsp; Barcode-safe</p>
 <div class="card">
   <form id="upload-form">
