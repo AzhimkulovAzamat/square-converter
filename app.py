@@ -118,7 +118,7 @@ button[type=submit]:disabled{opacity:.4;cursor:not-allowed;}
 </head>
 <body>
 <div class="logo">Batch Tool</div>
-<h1>K-Glow Square Converter</h1>
+<h1>Square Converter</h1>
 <p class="subtitle">A4 → 1:1 &nbsp;·&nbsp; PNG / JPEG / PDF &nbsp;·&nbsp; Barcode-safe</p>
 <div class="card">
   <form id="upload-form">
@@ -403,17 +403,21 @@ def convert():
 
                     if is_success:
                         if vr["original_codes"]:
+                            # Name file after barcode value
                             barcode_val = vr["original_codes"][0]["data"].decode(errors="replace")
                             outname = f"{barcode_val}.png"
-                        fmt="JPEG" if outname.endswith((".jpg",".jpeg")) else "PNG"
-                        zf.writestr(outname, to_bytes(sq,fmt))
-                        codes_str=", ".join(c["data"].decode(errors="replace") for c in vr["original_codes"])
+                            msg = barcode_val
+                        else:
+                            # pyzbar skipped — keep original stem name
+                            outname = Path(outname).with_suffix(".png").name
+                            msg = "проверка пропущена"
+                        zf.writestr(outname, to_bytes(sq, "PNG"))
                         log.append({
-                            "status": vr["status"],
-                            "name":   label,
-                            "out":    outname,
-                            "size":   f"{sq.size[0]}×{sq.size[1]}",
-                            "message": codes_str or "нет штрих-кода",
+                            "status":  vr["status"],
+                            "name":    label,
+                            "out":     outname,
+                            "size":    f"{sq.size[0]}×{sq.size[1]}",
+                            "message": msg,
                         })
                     else:
                         # NOT added to ZIP — goes to redo list
