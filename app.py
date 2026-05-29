@@ -146,6 +146,10 @@ button[type=submit]:disabled{opacity:.4;cursor:not-allowed;}
             <label for="mode-content"><strong>Только контент</strong>Без паддинга</label>
           </div>
           <div class="mode-card">
+            <input type="radio" name="mode" id="mode-label-land" value="label_land">
+            <label for="mode-label-land"><strong>150×102 мм</strong>Альбомная этикетка</label>
+          </div>
+          <div class="mode-card">
             <input type="radio" name="mode" id="mode-pad" value="pad">
             <label for="mode-pad"><strong>Белые поля</strong>1:1 без потерь</label>
           </div>
@@ -357,7 +361,7 @@ def smart_crop(img, padding_pct=0.03, threshold=200):
     return pad_to_square(find_content(img, padding_pct, threshold))
 
 def to_label_size(img, w_mm=102, h_mm=150, padding_pct=0.03, threshold=200):
-    """Smart crop + pad to 102x150mm label ratio."""
+    """Smart crop + pad to given label ratio (default 102x150mm)."""
     cropped = find_content(img, padding_pct, threshold)
     cw, ch = cropped.size
     # Target ratio: 102:150 = 0.68
@@ -381,7 +385,8 @@ def content_only(img, padding_pct=0.03, threshold=200):
 
 def process(img, mode):
     if mode=="smart":   return smart_crop(img)
-    if mode=="label":   return to_label_size(img)
+    if mode=="label":      return to_label_size(img, 102, 150)
+    if mode=="label_land": return to_label_size(img, 150, 102)
     if mode=="content": return content_only(img)
     if mode=="pad":     return pad_to_square(img)
     return center_crop(img)
